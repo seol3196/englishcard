@@ -72,7 +72,7 @@ app.post('/api/generate', async (req, res) => {
 
         const transcriptText = await new Promise((resolve, reject) => {
             const pythonScript = path.join(__dirname, 'get_transcript.py');
-            const python = spawn('py', [pythonScript, videoId]);
+            const python = spawn('python3', [pythonScript, videoId]);
 
             let stdout = '';
             let stderr = '';
