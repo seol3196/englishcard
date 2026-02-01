@@ -14,6 +14,7 @@ export default function App() {
     const [isLoading, setIsLoading] = useState(false);
     const [loadingStep, setLoadingStep] = useState('');
     const [error, setError] = useState('');
+    const [activeTab, setActiveTab] = useState('cards'); // 'summary', 'cards'
 
     // 세션 목록 로드
     useEffect(() => {
@@ -57,6 +58,7 @@ export default function App() {
             });
             setCards(data.cards);
             setCurrentCardIndex(0);
+            setActiveTab('cards');
             setView('cards');
 
             // 세션 목록 새로고침
@@ -88,6 +90,7 @@ export default function App() {
             setCurrentSession(data.session);
             setCards(data.cards);
             setCurrentCardIndex(0);
+            setActiveTab('cards');
             setView('cards');
         } catch (err) {
             setError(err.message);
@@ -120,11 +123,38 @@ export default function App() {
         }
     };
 
+    // 스와이프 핸들러
+    const [touchStart, setTouchStart] = useState(null);
+    const [touchEnd, setTouchEnd] = useState(null);
+    const minSwipeDistance = 50;
+
+    const onTouchStart = (e) => {
+        setTouchEnd(null);
+        setTouchStart(e.targetTouches[0].clientX);
+    };
+
+    const onTouchMove = (e) => {
+        setTouchEnd(e.targetTouches[0].clientX);
+    };
+
+    const onTouchEnd = () => {
+        if (!touchStart || !touchEnd) return;
+        const distance = touchStart - touchEnd;
+        const isLeftSwipe = distance > minSwipeDistance;
+        const isRightSwipe = distance < -minSwipeDistance;
+
+        if (isLeftSwipe) {
+            handleNextCard();
+        } else if (isRightSwipe) {
+            handlePrevCard();
+        }
+    };
+
     return (
         <div className="app">
             <header className="header">
-                <h1>🎬 YouTube 영어 플래시카드</h1>
-                <p>YouTube 영상으로 영어를 쉽게 학습하세요</p>
+                <h1>🎬 영어 플래시카드</h1>
+                <p>YouTube 영상으로 영어 학습</p>
             </header>
 
             {view !== 'loading' && (
@@ -165,25 +195,53 @@ export default function App() {
             {view === 'cards' && cards.length > 0 && (
                 <>
                     <button className="back-btn" onClick={handleGoHome}>
-                        ← 홈으로 돌아가기
+                        ← 홈으로
                     </button>
 
-                    <Summary
-                        title={currentSession?.title}
-                        summary={currentSession?.summary}
-                    />
+                    {/* 탭 네비게이션 */}
+                    <div className="tab-container">
+                        <button
+                            className={`tab-btn ${activeTab === 'cards' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('cards')}
+                        >
+                            📚 카드 학습
+                        </button>
+                        <button
+                            className={`tab-btn ${activeTab === 'summary' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('summary')}
+                        >
+                            📝 표현 설명
+                        </button>
+                    </div>
 
-                    <FlashCard
-                        front={cards[currentCardIndex].front}
-                        back={cards[currentCardIndex].back}
-                    />
+                    {/* 탭 컨텐츠 */}
+                    {activeTab === 'summary' && (
+                        <Summary
+                            title={currentSession?.title}
+                            summary={currentSession?.summary}
+                        />
+                    )}
 
-                    <CardNavigation
-                        current={currentCardIndex + 1}
-                        total={cards.length}
-                        onPrev={handlePrevCard}
-                        onNext={handleNextCard}
-                    />
+                    {activeTab === 'cards' && (
+                        <div
+                            className="card-swipe-area"
+                            onTouchStart={onTouchStart}
+                            onTouchMove={onTouchMove}
+                            onTouchEnd={onTouchEnd}
+                        >
+                            <FlashCard
+                                front={cards[currentCardIndex].front}
+                                back={cards[currentCardIndex].back}
+                            />
+
+                            <CardNavigation
+                                current={currentCardIndex + 1}
+                                total={cards.length}
+                                onPrev={handlePrevCard}
+                                onNext={handleNextCard}
+                            />
+                        </div>
+                    )}
                 </>
             )}
         </div>
