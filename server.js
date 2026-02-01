@@ -116,37 +116,39 @@ app.post('/api/generate', async (req, res) => {
 다음 형식의 JSON으로 응답해주세요:
 {
   "title": "핵심 표현 (예: for a while vs in a while)",
-  "summary": "마크다운 형식의 개조식 요약 (아래 형식 참고)",
+  "summary": "마크다운 형식의 개조식 요약",
   "cards": [
-    { "front": "한글 문장", "back": "영어 문장" },
-    ...
+    { "front": "나는 그것을 / 한동안 사용해왔어", "back": "I've been using it / for a while" },
+    { "front": "나는 피자를 안 먹었어 / 꽤 오랫동안", "back": "I haven't had pizza / in a while" }
   ]
 }
 
-summary 작성 규칙 (반드시 마크다운 개조식으로):
-\`\`\`
+⚠️ 중요: 카드 생성 규칙
+- front는 반드시 한국어로 작성 (영어 단어 사용 금지)
+- back은 반드시 영어로 작성
+- 한국어는 직독직해 방식으로 / 슬래시로 구분
+- 예시:
+  ✅ front: "나는 믿어요 / 당신이 할 수 있다고" → back: "I believe / you can do it"
+  ✅ front: "그것은 오래됐어 / 내가 여기 온 지" → back: "It's been a while / since I came here"
+  ❌ front: "I believe you can do it" (영어는 안됨!)
+
+summary 작성 규칙 (마크다운 개조식):
 ## 🎯 핵심 표현
 **표현1** vs **표현2**
 
 ## 📌 표현별 의미
-- **표현1**: 의미 설명 (한 줄)
-- **표현2**: 의미 설명 (한 줄)
+- **표현1**: 의미 설명
+- **표현2**: 의미 설명
 
 ## 💡 사용 팁
-- 긍정문에서는 → 표현1
-- 부정문에서는 → 표현2
-\`\`\`
+- 상황별 사용법
 
-플래시카드 생성 규칙:
-1. 이 영상이 가르치는 핵심 영어 표현을 파악하세요.
-2. 영상에 나온 예시 문장을 먼저 카드로 활용하세요.
-3. 영상 예시 문장을 모두 활용한 후, 동일 표현을 활용한 응용 문제 10개를 추가로 생성하세요.
-4. front(앞면)은 한글로, back(뒷면)은 영어로 작성합니다.
-5. 한글 문장은 직독직해가 가능하도록 영어 문장 구조를 따라 작성합니다.
-   예: "나는 믿어요 / 당신이 할 수 있다고" → "I believe / you can do it"
-6. 최소 15개 이상의 카드를 생성해주세요.
+플래시카드 추가 규칙:
+1. 영상에 나온 예시 문장을 먼저 카드로 활용
+2. 응용 문제 10개 추가 생성
+3. 최소 15개 이상의 카드
 
-JSON만 응답하고, 다른 설명은 포함하지 마세요.`;
+JSON만 응답하세요.`;
 
         const completion = await client.chat.completions.create({
             model: "GLM-4.7-Flash",
