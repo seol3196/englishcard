@@ -222,12 +222,76 @@ body {
   font-size: 1.3rem;
   font-weight: 600;
   color: var(--text-primary);
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Markdown content styling */
+.summary-content {
+  color: var(--text-secondary);
+  line-height: 1.9;
+  font-size: 1rem;
+}
+
+.summary-content p {
+  margin-bottom: 1rem;
+}
+
+.summary-content p:last-child {
+  margin-bottom: 0;
+}
+
+.summary-content strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.summary-content em {
+  color: var(--accent-primary);
+  font-style: italic;
+}
+
+.summary-content ul,
+.summary-content ol {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.summary-content li {
   margin-bottom: 0.5rem;
 }
 
-.summary-text {
-  color: var(--text-secondary);
-  line-height: 1.8;
+.summary-content li::marker {
+  color: var(--accent-primary);
+}
+
+.summary-content code {
+  background: var(--bg-card);
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.9em;
+  color: var(--accent-secondary);
+}
+
+.summary-content h1,
+.summary-content h2,
+.summary-content h3 {
+  color: var(--text-primary);
+  margin: 1.5rem 0 0.75rem;
+}
+
+.summary-content h1 {
+  font-size: 1.3rem;
+}
+
+.summary-content h2 {
+  font-size: 1.15rem;
+}
+
+.summary-content h3 {
+  font-size: 1.05rem;
 }
 
 /* Flash Card */
