@@ -16,11 +16,7 @@ export default function App() {
     const [error, setError] = useState('');
     const [activeTab, setActiveTab] = useState('cards'); // 'summary', 'cards'
     const [studyMode, setStudyMode] = useState('all'); // 'all', 'unknown'
-
-    // 필터링된 카드 목록
-    const filteredCards = studyMode === 'unknown'
-        ? cards.filter(card => !card.mastered)
-        : cards;
+    const [studyCards, setStudyCards] = useState([]); // 학습 시작 시 고정된 카드 목록
 
     // 세션 목록 로드
     useEffect(() => {
@@ -111,6 +107,11 @@ export default function App() {
     const handleSelectStudyMode = (mode) => {
         setStudyMode(mode);
         setCurrentCardIndex(0);
+        // 학습 시작 시 카드 목록 고정 (암기완료해도 목록 유지)
+        const cardsToStudy = mode === 'unknown'
+            ? cards.filter(card => !card.mastered)
+            : cards;
+        setStudyCards(cardsToStudy);
         setView('cards');
     };
 
@@ -171,7 +172,7 @@ export default function App() {
     };
 
     const handleNextCard = () => {
-        if (currentCardIndex < filteredCards.length - 1) {
+        if (currentCardIndex < studyCards.length - 1) {
             setCurrentCardIndex(currentCardIndex + 1);
         }
     };
@@ -192,9 +193,7 @@ export default function App() {
     };
 
     const onTouchMove = (e) => {
-        // 가로 스와이프 시 스크롤 방지
-        e.preventDefault();
-
+        // CSS touch-action으로 스크롤 제어 (passive event listener 호환)
         const currentX = e.targetTouches[0].clientX;
         setTouchEnd(currentX);
 
@@ -223,9 +222,9 @@ export default function App() {
         const isLeftSwipe = distance > minSwipeDistance;
         const isRightSwipe = distance < -minSwipeDistance;
 
-        if (filteredCards.length > 0 && !exitDirection) {
-            const currentCard = filteredCards[currentCardIndex];
-            const isLastCard = currentCardIndex >= filteredCards.length - 1;
+        if (studyCards.length > 0 && !exitDirection) {
+            const currentCard = studyCards[currentCardIndex];
+            const isLastCard = currentCardIndex >= studyCards.length - 1;
 
             if (isLeftSwipe) {
                 // 왼쪽 스와이프 = 암기 완료
@@ -312,9 +311,9 @@ export default function App() {
             const isLeftDrag = distance > minSwipeDistance;
             const isRightDrag = distance < -minSwipeDistance;
 
-            if (filteredCards.length > 0 && !exitDirection) {
-                const currentCard = filteredCards[currentCardIndex];
-                const isLastCard = currentCardIndex >= filteredCards.length - 1;
+            if (studyCards.length > 0 && !exitDirection) {
+                const currentCard = studyCards[currentCardIndex];
+                const isLastCard = currentCardIndex >= studyCards.length - 1;
 
                 if (isLeftDrag) {
                     updateCardMastered(currentCard.id, true);
@@ -356,14 +355,14 @@ export default function App() {
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [isDragging, dragStart, filteredCards, currentCardIndex]);
+    }, [isDragging, dragStart, studyCards, currentCardIndex]);
 
     // 카드 퇴장 애니메이션 상태
     const [exitDirection, setExitDirection] = useState(null); // 'left' | 'right' | null
 
     // 카드 퇴장 애니메이션 실행
     const animateCardExit = (direction, mastered, isLastCard) => {
-        const currentCard = filteredCards[currentCardIndex];
+        const currentCard = studyCards[currentCardIndex];
         updateCardMastered(currentCard.id, mastered);
 
         // 퇴장 방향 설정 (애니메이션 시작)
@@ -383,16 +382,16 @@ export default function App() {
 
     // 암기 완료 처리
     const handleMarkMastered = () => {
-        if (filteredCards.length > 0 && view === 'cards' && activeTab === 'cards' && !exitDirection) {
-            const isLastCard = currentCardIndex >= filteredCards.length - 1;
+        if (studyCards.length > 0 && view === 'cards' && activeTab === 'cards' && !exitDirection) {
+            const isLastCard = currentCardIndex >= studyCards.length - 1;
             animateCardExit('left', true, isLastCard);
         }
     };
 
     // 공부 필요 처리
     const handleMarkNeedsStudy = () => {
-        if (filteredCards.length > 0 && view === 'cards' && activeTab === 'cards' && !exitDirection) {
-            const isLastCard = currentCardIndex >= filteredCards.length - 1;
+        if (studyCards.length > 0 && view === 'cards' && activeTab === 'cards' && !exitDirection) {
+            const isLastCard = currentCardIndex >= studyCards.length - 1;
             animateCardExit('right', false, isLastCard);
         }
     };
@@ -432,7 +431,7 @@ export default function App() {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [view, activeTab, filteredCards, currentCardIndex]);
+    }, [view, activeTab, studyCards, currentCardIndex]);
 
     // 모르는 카드 개수
     const unknownCount = cards.filter(card => !card.mastered).length;
@@ -520,7 +519,7 @@ export default function App() {
                 </div>
             )}
 
-            {view === 'cards' && filteredCards.length > 0 && (
+            {view === 'cards' && studyCards.length > 0 && studyCards[currentCardIndex] && (
                 <>
                     <button className="back-btn" onClick={() => setView('mode-select')}>
                         ← 모드 선택
@@ -576,17 +575,17 @@ export default function App() {
                                 } : {}}
                             >
                                 <FlashCard
-                                    key={filteredCards[currentCardIndex].id}
-                                    front={filteredCards[currentCardIndex].front}
-                                    back={filteredCards[currentCardIndex].back}
-                                    mastered={filteredCards[currentCardIndex].mastered}
+                                    key={studyCards[currentCardIndex].id}
+                                    front={studyCards[currentCardIndex].front}
+                                    back={studyCards[currentCardIndex].back}
+                                    mastered={studyCards[currentCardIndex].mastered}
                                     disabled={wasDragging}
                                 />
                             </div>
 
                             <CardNavigation
                                 current={currentCardIndex + 1}
-                                total={filteredCards.length}
+                                total={studyCards.length}
                                 onPrev={handlePrevCard}
                                 onNext={handleNextCard}
                             />
@@ -615,7 +614,7 @@ export default function App() {
                 </>
             )}
 
-            {view === 'cards' && filteredCards.length === 0 && (
+            {view === 'cards' && studyCards.length === 0 && (
                 <div className="empty-cards-message">
                     <div className="empty-icon">🎉</div>
                     <h3>모든 카드를 암기했습니다!</h3>
