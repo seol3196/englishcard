@@ -12,7 +12,9 @@ import {
     createCard,
     getAllSessions,
     getCardsBySessionId,
-    getSessionById
+    getSessionById,
+    updateCardMastered,
+    resetSessionCards
 } from './src/db.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -72,7 +74,9 @@ app.post('/api/generate', async (req, res) => {
 
         const transcriptText = await new Promise((resolve, reject) => {
             const pythonScript = path.join(__dirname, 'get_transcript.py');
-            const python = spawn('python3', [pythonScript, videoId]);
+            // OS에 따라 python 명령어 다르게 설정 (Linux/Mac: python3, Windows: py)
+            const pythonCommand = process.platform === 'win32' ? 'py' : 'python3';
+            const python = spawn(pythonCommand, [pythonScript, videoId]);
 
             let stdout = '';
             let stderr = '';
@@ -232,6 +236,33 @@ app.get('/api/sessions/:id/cards', (req, res) => {
     } catch (error) {
         console.error('카드 조회 오류:', error);
         res.status(500).json({ error: '카드 조회 중 오류가 발생했습니다.' });
+    }
+});
+
+// PUT /api/cards/:id/mastered - 카드 암기 상태 업데이트
+app.put('/api/cards/:id/mastered', (req, res) => {
+    try {
+        const { id } = req.params;
+        const { mastered } = req.body;
+
+        updateCardMastered(id, mastered);
+        res.json({ success: true, id, mastered });
+    } catch (error) {
+        console.error('카드 상태 업데이트 오류:', error);
+        res.status(500).json({ error: '카드 상태 업데이트 중 오류가 발생했습니다.' });
+    }
+});
+
+// POST /api/sessions/:id/reset-cards - 세션의 모든 카드 초기화
+app.post('/api/sessions/:id/reset-cards', (req, res) => {
+    try {
+        const { id } = req.params;
+
+        resetSessionCards(id);
+        res.json({ success: true, sessionId: id });
+    } catch (error) {
+        console.error('카드 초기화 오류:', error);
+        res.status(500).json({ error: '카드 초기화 중 오류가 발생했습니다.' });
     }
 });
 

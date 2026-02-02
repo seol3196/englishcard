@@ -12,11 +12,11 @@ export function getDatabase() {
   if (!db) {
     const dbPath = path.join(__dirname, '..', 'flashcard.db');
     db = new Database(dbPath);
-    
+
     // WAL 모드 및 busy_timeout 설정
     db.pragma('journal_mode = WAL');
     db.pragma('busy_timeout = 5000');
-    
+
     // 테이블 생성
     initializeTables();
   }
@@ -43,9 +43,17 @@ function initializeTables() {
       front TEXT NOT NULL,
       back TEXT NOT NULL,
       card_order INTEGER NOT NULL,
+      mastered INTEGER DEFAULT 0,
       FOREIGN KEY (session_id) REFERENCES sessions(id)
     )
   `);
+
+  // 기존 테이블에 mastered 컬럼이 없으면 추가
+  try {
+    db.exec(`ALTER TABLE cards ADD COLUMN mastered INTEGER DEFAULT 0`);
+  } catch (e) {
+    // 이미 컬럼이 존재하면 무시
+  }
 }
 
 // 세션 생성
@@ -83,7 +91,7 @@ export function getAllSessions() {
 export function getCardsBySessionId(sessionId) {
   const db = getDatabase();
   const stmt = db.prepare(`
-    SELECT id, front, back, card_order
+    SELECT id, front, back, card_order, mastered
     FROM cards
     WHERE session_id = ?
     ORDER BY card_order ASC
@@ -100,4 +108,22 @@ export function getSessionById(sessionId) {
     WHERE id = ?
   `);
   return stmt.get(sessionId);
+}
+
+// 카드 암기 상태 업데이트
+export function updateCardMastered(cardId, mastered) {
+  const db = getDatabase();
+  const stmt = db.prepare(`
+    UPDATE cards SET mastered = ? WHERE id = ?
+  `);
+  stmt.run(mastered ? 1 : 0, cardId);
+}
+
+// 세션의 모든 카드 초기화 (공부필요 상태로)
+export function resetSessionCards(sessionId) {
+  const db = getDatabase();
+  const stmt = db.prepare(`
+    UPDATE cards SET mastered = 0 WHERE session_id = ?
+  `);
+  stmt.run(sessionId);
 }
