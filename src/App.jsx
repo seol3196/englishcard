@@ -182,19 +182,28 @@ export default function App() {
     const [swipeDirection, setSwipeDirection] = useState(null);
     const minSwipeDistance = 50;
 
+    const [touchOffset, setTouchOffset] = useState(0); // 모바일 터치 이동량
+
     const onTouchStart = (e) => {
         setTouchEnd(null);
         setSwipeDirection(null);
         setTouchStart(e.targetTouches[0].clientX);
+        setTouchOffset(0);
     };
 
     const onTouchMove = (e) => {
+        // 가로 스와이프 시 스크롤 방지
+        e.preventDefault();
+
         const currentX = e.targetTouches[0].clientX;
         setTouchEnd(currentX);
 
         // 스와이프 방향 미리보기
         if (touchStart) {
             const diff = touchStart - currentX;
+            const multiplier = 1.5; // 모바일에서 더 가볍게 느끼도록
+            setTouchOffset(-diff * multiplier);
+
             if (diff > 30) {
                 setSwipeDirection('left');
             } else if (diff < -30) {
@@ -206,27 +215,49 @@ export default function App() {
     };
 
     const onTouchEnd = () => {
-        if (!touchStart || !touchEnd) return;
+        if (!touchStart || !touchEnd) {
+            setTouchOffset(0);
+            return;
+        }
         const distance = touchStart - touchEnd;
         const isLeftSwipe = distance > minSwipeDistance;
         const isRightSwipe = distance < -minSwipeDistance;
 
-        if (filteredCards.length > 0) {
+        if (filteredCards.length > 0 && !exitDirection) {
             const currentCard = filteredCards[currentCardIndex];
+            const isLastCard = currentCardIndex >= filteredCards.length - 1;
 
             if (isLeftSwipe) {
                 // 왼쪽 스와이프 = 암기 완료
                 updateCardMastered(currentCard.id, true);
-                if (currentCardIndex < filteredCards.length - 1) {
-                    setCurrentCardIndex(currentCardIndex + 1);
-                }
+                setExitDirection('left');
+                setTouchOffset(0);
+                setTimeout(() => {
+                    setExitDirection(null);
+                    if (isLastCard) {
+                        showCompleteAndRedirect();
+                    } else {
+                        setCurrentCardIndex(currentCardIndex + 1);
+                    }
+                }, 250);
             } else if (isRightSwipe) {
                 // 오른쪽 스와이프 = 공부 필요
                 updateCardMastered(currentCard.id, false);
-                if (currentCardIndex < filteredCards.length - 1) {
-                    setCurrentCardIndex(currentCardIndex + 1);
-                }
+                setExitDirection('right');
+                setTouchOffset(0);
+                setTimeout(() => {
+                    setExitDirection(null);
+                    if (isLastCard) {
+                        showCompleteAndRedirect();
+                    } else {
+                        setCurrentCardIndex(currentCardIndex + 1);
+                    }
+                }, 250);
+            } else {
+                setTouchOffset(0);
             }
+        } else {
+            setTouchOffset(0);
         }
 
         setSwipeDirection(null);
@@ -236,6 +267,7 @@ export default function App() {
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState(null);
     const [dragOffset, setDragOffset] = useState(0);
+    const [wasDragging, setWasDragging] = useState(false); // 드래그 후 클릭 방지용
 
     const onMouseDown = (e) => {
         e.preventDefault();
@@ -243,6 +275,7 @@ export default function App() {
         setDragStart(e.clientX);
         setDragOffset(0);
         setSwipeDirection(null);
+        setWasDragging(false);
     };
 
     // window 레벨 마우스 이벤트 (카드 밖에서도 드래그 계속)
@@ -254,6 +287,11 @@ export default function App() {
 
             const diff = dragStart - e.clientX;
             setDragOffset(-diff); // 카드가 마우스를 따라오도록
+
+            // 5px 이상 움직이면 드래그로 인식 (클릭 방지용)
+            if (Math.abs(diff) > 5) {
+                setWasDragging(true);
+            }
 
             if (diff > 30) {
                 setSwipeDirection('left');
@@ -274,23 +312,34 @@ export default function App() {
             const isLeftDrag = distance > minSwipeDistance;
             const isRightDrag = distance < -minSwipeDistance;
 
-            if (filteredCards.length > 0) {
+            if (filteredCards.length > 0 && !exitDirection) {
                 const currentCard = filteredCards[currentCardIndex];
+                const isLastCard = currentCardIndex >= filteredCards.length - 1;
 
                 if (isLeftDrag) {
                     updateCardMastered(currentCard.id, true);
-                    if (currentCardIndex < filteredCards.length - 1) {
-                        setCurrentCardIndex(currentCardIndex + 1);
-                    } else {
-                        showCompleteAndRedirect();
-                    }
+                    setExitDirection('left');
+                    setDragOffset(0);
+                    setTimeout(() => {
+                        setExitDirection(null);
+                        if (isLastCard) {
+                            showCompleteAndRedirect();
+                        } else {
+                            setCurrentCardIndex(currentCardIndex + 1);
+                        }
+                    }, 250);
                 } else if (isRightDrag) {
                     updateCardMastered(currentCard.id, false);
-                    if (currentCardIndex < filteredCards.length - 1) {
-                        setCurrentCardIndex(currentCardIndex + 1);
-                    } else {
-                        showCompleteAndRedirect();
-                    }
+                    setExitDirection('right');
+                    setDragOffset(0);
+                    setTimeout(() => {
+                        setExitDirection(null);
+                        if (isLastCard) {
+                            showCompleteAndRedirect();
+                        } else {
+                            setCurrentCardIndex(currentCardIndex + 1);
+                        }
+                    }, 250);
                 }
             }
 
@@ -309,31 +358,42 @@ export default function App() {
         };
     }, [isDragging, dragStart, filteredCards, currentCardIndex]);
 
+    // 카드 퇴장 애니메이션 상태
+    const [exitDirection, setExitDirection] = useState(null); // 'left' | 'right' | null
+
+    // 카드 퇴장 애니메이션 실행
+    const animateCardExit = (direction, mastered, isLastCard) => {
+        const currentCard = filteredCards[currentCardIndex];
+        updateCardMastered(currentCard.id, mastered);
+
+        // 퇴장 방향 설정 (애니메이션 시작)
+        setExitDirection(direction);
+        setDragOffset(0);
+
+        // 애니메이션 후 다음 카드로
+        setTimeout(() => {
+            setExitDirection(null);
+            if (isLastCard) {
+                showCompleteAndRedirect();
+            } else {
+                setCurrentCardIndex(currentCardIndex + 1);
+            }
+        }, 250);
+    };
+
     // 암기 완료 처리
     const handleMarkMastered = () => {
-        if (filteredCards.length > 0 && view === 'cards' && activeTab === 'cards') {
-            const currentCard = filteredCards[currentCardIndex];
-            updateCardMastered(currentCard.id, true);
-            if (currentCardIndex < filteredCards.length - 1) {
-                setCurrentCardIndex(currentCardIndex + 1);
-            } else {
-                // 마지막 카드 - 완료 메시지 후 모드 선택으로
-                showCompleteAndRedirect();
-            }
+        if (filteredCards.length > 0 && view === 'cards' && activeTab === 'cards' && !exitDirection) {
+            const isLastCard = currentCardIndex >= filteredCards.length - 1;
+            animateCardExit('left', true, isLastCard);
         }
     };
 
     // 공부 필요 처리
     const handleMarkNeedsStudy = () => {
-        if (filteredCards.length > 0 && view === 'cards' && activeTab === 'cards') {
-            const currentCard = filteredCards[currentCardIndex];
-            updateCardMastered(currentCard.id, false);
-            if (currentCardIndex < filteredCards.length - 1) {
-                setCurrentCardIndex(currentCardIndex + 1);
-            } else {
-                // 마지막 카드 - 완료 메시지 후 모드 선택으로
-                showCompleteAndRedirect();
-            }
+        if (filteredCards.length > 0 && view === 'cards' && activeTab === 'cards' && !exitDirection) {
+            const isLastCard = currentCardIndex >= filteredCards.length - 1;
+            animateCardExit('right', false, isLastCard);
         }
     };
 
@@ -509,16 +569,18 @@ export default function App() {
                             </div>
 
                             <div
-                                className="flashcard-drag-wrapper"
-                                style={{
-                                    transform: `translateX(${dragOffset}px)`,
-                                    opacity: Math.max(0.3, 1 - Math.abs(dragOffset) / 150)
-                                }}
+                                className={`flashcard-drag-wrapper ${exitDirection ? `exit-${exitDirection}` : ''}`}
+                                style={!exitDirection ? {
+                                    transform: `translateX(${touchOffset || dragOffset}px)`,
+                                    opacity: Math.max(0.3, 1 - Math.abs(touchOffset || dragOffset) / 150)
+                                } : {}}
                             >
                                 <FlashCard
+                                    key={filteredCards[currentCardIndex].id}
                                     front={filteredCards[currentCardIndex].front}
                                     back={filteredCards[currentCardIndex].back}
                                     mastered={filteredCards[currentCardIndex].mastered}
+                                    disabled={wasDragging}
                                 />
                             </div>
 

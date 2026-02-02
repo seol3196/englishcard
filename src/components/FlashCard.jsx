@@ -1,21 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
-export default function FlashCard({ front, back, mastered }) {
+export default function FlashCard({ front, back, mastered, disabled }) {
     const [isFlipped, setIsFlipped] = useState(false);
+    const [noTransition, setNoTransition] = useState(false);
+    const prevFrontRef = useRef(front);
 
     const handleClick = () => {
+        if (disabled) return; // 드래그 후 클릭 방지
         setIsFlipped(!isFlipped);
     };
 
-    // Reset flip state when card content changes
-    React.useEffect(() => {
-        setIsFlipped(false);
-    }, [front, back]);
+    // Reset flip state when card content changes (without animation)
+    useEffect(() => {
+        if (prevFrontRef.current !== front) {
+            setNoTransition(true);
+            setIsFlipped(false);
+            // Re-enable transition after reset
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    setNoTransition(false);
+                });
+            });
+            prevFrontRef.current = front;
+        }
+    }, [front]);
 
     return (
         <div className="flashcard-container">
             <div
-                className={`flashcard ${isFlipped ? 'flipped' : ''}`}
+                className={`flashcard ${isFlipped ? 'flipped' : ''} ${noTransition ? 'no-transition' : ''}`}
                 onClick={handleClick}
             >
                 <div className="flashcard-face flashcard-front">

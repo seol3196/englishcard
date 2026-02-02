@@ -317,6 +317,10 @@ body {
   transform: rotateY(180deg);
 }
 
+.flashcard.no-transition {
+  transition: none !important;
+}
+
 .flashcard-face {
   position: absolute;
   width: 100%;
@@ -690,6 +694,8 @@ body {
 .card-swipe-area {
   cursor: grab;
   user-select: none;
+  touch-action: pan-y pinch-zoom;
+  /* 가로 스와이프 시 스크롤 방지 */
 }
 
 .card-swipe-area.dragging {
@@ -707,6 +713,22 @@ body {
 
 .card-swipe-area.dragging .flashcard-drag-wrapper {
   transition: none;
+}
+
+/* Card Exit Animations */
+.flashcard-drag-wrapper.exit-left,
+.flashcard-drag-wrapper.exit-right {
+  animation: fadeOutCard 0.25s ease-out forwards;
+}
+
+@keyframes fadeOutCard {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
 }
 
 /* Empty Cards Message */
