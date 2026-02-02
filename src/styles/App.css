@@ -694,8 +694,7 @@ body {
 .card-swipe-area {
   cursor: grab;
   user-select: none;
-  touch-action: pan-y pinch-zoom;
-  /* 가로 스와이프 시 스크롤 방지 */
+  touch-action: none;
 }
 
 .card-swipe-area.dragging {
